@@ -1,6 +1,8 @@
 #include<lib/Chacha_Stream.hpp>
 #include<iostream>
 #include<assert.h>
+#include<numeric>
+#include<cstdint>
 int main(){
     pfe::key secret_key;
     secret_key.fill(0x41);
@@ -8,41 +10,31 @@ int main(){
     iv_nonce.fill(0x59);
     pfe::ChaChaCipher cipher(secret_key,iv_nonce);
 
-    std::string plain_text="Hello miau!!!!!";
-    std::vector<std::uint8_t>buffer(plain_text.begin(),plain_text.end());
+    std::vector<std::uint8_t>plaintext(200),e1,e2;
+    std::iota(plaintext.begin(),plaintext.end(),0);
+    e1=plaintext;
+    e2=plaintext;
 
-    std::vector<std::uint8_t>backup=buffer;
+    std::span<std::uint8_t>chunk{e2};
+    cipher.apply(e2,0);
 
-    std::cout<<"Original Text: "<<plain_text<<std::endl;
+    std::span<std::uint8_t>chunk1(reinterpret_cast<uint8_t*>(e1.data()),64);
+    cipher.apply(chunk1,0);
 
-    std::uint64_t offset=0;
-    std::span<std::uint8_t>crypto_span(buffer);
-
-    cipher.apply(crypto_span,offset);
-    
-    for(auto byte:buffer){
-        printf("%02x",byte);
+    std::span<std::uint8_t>chunk2(reinterpret_cast<uint8_t*>(e1.data())+64,136);
+    cipher.apply(chunk2,64);
+    bool match=true;
+    for(size_t i=0;i<200;i++){
+        if(e2[i]!=e1[i]){
+            std::cout<<"Mismatch at"<<i<<std::endl;
+            match=false;
+            break;
+        }
     }
-    std::cout<<"\n";
-
-    assert(buffer!=backup&&"Encryption failed");
-
-    std::cout<<"Decrypting";
-    offset=0;
-
-    cipher.apply(crypto_span,offset);
-
-    std::string decrypted(buffer.begin(),buffer.end());
-
-    std::cout<<"Recovered: "<<decrypted<<"\n";
-
-    if(buffer==backup){
-        std::cout<<"It workd :D";
+    if(match){
+        std::cout<<"miau"<<"\n";
     }
-    else{
-        std::cerr<<"Didnt work :(";
-        return 1;
-    }
+
 
 
 
