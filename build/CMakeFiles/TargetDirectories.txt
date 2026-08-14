@@ -1,0 +1,4 @@
+/home/vipul/Projects/Ransomeware_def/build/CMakeFiles/Chacha_Stream_lib.dir
+/home/vipul/Projects/Ransomeware_def/build/CMakeFiles/main.dir
+/home/vipul/Projects/Ransomeware_def/build/CMakeFiles/edit_cache.dir
+/home/vipul/Projects/Ransomeware_def/build/CMakeFiles/rebuild_cache.dir
