@@ -1,4 +1,4 @@
-#include<lib/Chacha_Stream.hpp>
+#include<Chacha_Stream.hpp>
 
 namespace pfe{
     ChaChaCipher::ChaChaCipher(const key&key,const nonce&nonce){

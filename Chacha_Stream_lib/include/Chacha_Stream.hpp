@@ -8,7 +8,7 @@
 #include<array>
 #include<cstdint>
 #include<span>
-#include<lib/Cryptopp_compatibility.hpp>
+#include <Cryptopp_compatibility.hpp>
 
 namespace pfe{
 
