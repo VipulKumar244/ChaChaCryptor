@@ -9,7 +9,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(Chacha_Stream_lib)
 add_subdirectory(KDF_lib)
+add_subdirectory(Thread_pool_lib)
 
 add_executable(main app/main.cpp)
 
-target_link_libraries(main PRIVATE FileEncryptor::KDF)
+target_link_libraries(main PRIVATE FileEncryptor::KDF
+                                    FileEncryptor::Thread_Pool)
