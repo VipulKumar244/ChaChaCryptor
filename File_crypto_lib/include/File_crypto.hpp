@@ -53,7 +53,7 @@ namespace pfe{
 
     inline nonce random_nonce();
 
-    namespace detail{
+    namespace Serializer{
         inline void put_u32le(std::vector<std::uint8_t>&out,std::uint32_t v);
         inline void put_64le(std::vector<std::uint8_t>&out,std::uint64_t v);
         inline std::uint32_t get_u32le(const std::uint8_t*p);
