@@ -1,65 +1,70 @@
-#include<KDF.hpp>
-#include<iostream>
-#include<assert.h>
-#include<fstream>
+#include <File_crypto.hpp>
 
-std::vector<char>encrypt_whole_file(const std::string&filename,pfe::ChaChaCipher &cipher_){
-    std::ifstream file(filename,std::ios::binary|std::ios::ate);
-    if(!file) {
-        std::cerr<<"Could not open the file in the whole encrypt function!!!!";
-        return {};
-    };
-    std::streamsize size=file.tellg();
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <string_view>
 
-    file.seekg(0,std::ios::beg);
+namespace {
 
-    std::vector<char>buffer(size);
-    file.read(buffer.data(),size);
-    cipher_.apply({reinterpret_cast<std::uint8_t*>(buffer.data()),buffer.size()},0);
-    return buffer;
+const char* error_message(pfe::CryptoError error) {
+    switch (error) {
+    case pfe::CryptoError::CannotOpenInput: return "cannot open input file";
+    case pfe::CryptoError::CannotCreateOutput: return "cannot create output file";
+    case pfe::CryptoError::BadHeader: return "invalid encrypted-file header";
+    case pfe::CryptoError::UnsupportedVersion: return "unsupported encrypted-file version";
+    case pfe::CryptoError::TruncatedInput: return "truncated encrypted file";
+    }
+    return "unknown error";
 }
 
-int main(){
-
-    pfe::key key;
-    key.fill(0xAA);
-    pfe::nonce nonce;
-    nonce.fill(0xAA);
-    constexpr std::size_t batch_size=64;
-    pfe::ChaChaCipher cipher_(key,nonce);
-    std::string filename="test.txt";
-    std::vector<char>expected_cipher_text=encrypt_whole_file(filename,cipher_);
-
-    std::ifstream file(filename,std::ios::binary);
-    if(!file){
-        std::cerr<<"Could not open the file.\n";
-        return 1;
-    }   
-
-    std::cout<<"Batch testing..\n";
-    std::vector<char>buffer(batch_size);
-    std::vector<char>batch_ciphertext;
-    std::uint64_t current_offset=0;
-    while(file.read(buffer.data(),batch_size)||file.gcount()>0){
-        std::streamsize bytes_read=file.gcount();
-        std::span<std::uint8_t>batch_span(reinterpret_cast<uint8_t*>(buffer.data()),bytes_read);
-        cipher_.apply(batch_span,current_offset);
-        batch_ciphertext.insert(batch_ciphertext.end(),batch_span.begin(),batch_span.end());
-        current_offset+=bytes_read;
+bool files_match(const std::filesystem::path& left, const std::filesystem::path& right) {
+    std::error_code error;
+    if (std::filesystem::file_size(left, error) != std::filesystem::file_size(right, error) || error) {
+        return false;
     }
-    assert(batch_ciphertext==expected_cipher_text && "OFFSET BUG: Batch output mistmatch!!!");
+    std::ifstream a(left, std::ios::binary);
+    std::ifstream b(right, std::ios::binary);
+    return std::equal(std::istreambuf_iterator<char>(a), std::istreambuf_iterator<char>(),
+                      std::istreambuf_iterator<char>(b), std::istreambuf_iterator<char>());
+}
 
-    std::cout<<"Success!!!!";
+} 
+
+int main(int argc, char* argv[]) {
+    if (argc != 5) {
+        std::cerr << "Usage: " << argv[0]
+                  << " <input-file> <encrypted-file> <decrypted-file> <password>\n";
+        return 2;
+    }
+
+    const std::filesystem::path input = argv[1];
+    const std::filesystem::path encrypted = argv[2];
+    const std::filesystem::path decrypted = argv[3];
+    if (std::filesystem::absolute(input) == std::filesystem::absolute(encrypted) ||
+        std::filesystem::absolute(input) == std::filesystem::absolute(decrypted) ||
+        std::filesystem::absolute(encrypted) == std::filesystem::absolute(decrypted)) {
+        std::cerr << "Input, encrypted, and decrypted paths must be different.\n";
+        return 2;
+    }
+
+    const auto key = pfe::derive_key(argv[4], "file-crypto-test");
+    const auto workers = std::max(1u, std::thread::hardware_concurrency());
+    pfe::ThreadPool pool(workers);
+
+    if (const auto result = pfe::encrypt_file(pool, input, encrypted, key); !result) {
+        std::cerr << "Encryption failed: " << error_message(result.error()) << '\n';
+        return 1;
+    }
+    if (const auto result = pfe::decrypt_file(pool, encrypted, decrypted, key); !result) {
+        std::cerr << "Decryption failed: " << error_message(result.error()) << '\n';
+        return 1;
+    }
+    if (!files_match(input, decrypted)) {
+        std::cerr << "Round-trip test failed: decrypted content differs from the input.\n";
+        return 1;
+    }
+
+    std::cout << "Round-trip test passed. Encrypted file: " << encrypted << '\n';
     return 0;
-
-
-    
-    
-
-
-
-
-
-
-
 }

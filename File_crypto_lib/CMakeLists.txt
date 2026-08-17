@@ -1,6 +1,6 @@
 add_library(
     File_crypto_lib STATIC
-    src/KDF_lib.cpp
+    src/File_crypto_lib.cpp
 )
 target_include_directories(
     File_crypto_lib PUBLIC
