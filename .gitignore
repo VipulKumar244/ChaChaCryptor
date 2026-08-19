@@ -1,3 +1,3 @@
 .vscode/
 build/
-tests/
+tests/output/

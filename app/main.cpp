@@ -121,7 +121,7 @@ int run_directory(const Args&a){
         std::cerr<<"Not a directory: "<<a.target<<"\n";
         return 1;
     }
-    bool encrypting=(a.command=="encrypting-dir");
+    bool encrypting=(a.command=="encrypt-dir");
     pfe::ThreadPool pool(a.threads);
     auto key=derive_key(a.password);
 

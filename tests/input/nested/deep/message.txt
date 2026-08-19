@@ -1,0 +1,1 @@
+This fixture confirms that recursive directory encryption handles nested files.
